@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
       messagingSenderId: "73821534483",
       appId: "1:73821534483:web:bd073665ecba1eae91c2e6"
 };
-    };
     // -------------------------------------------------------------------------
 
     // Firebase初期化

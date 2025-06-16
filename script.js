@@ -1,4 +1,4 @@
-// --- START OF FILE script.js (オプション機能追加・完全版) ---
+// --- START OF FILE script.js (オプション機能・最終修正版) ---
 
 document.addEventListener('DOMContentLoaded', () => {
     // ------------------- !! ここを自分の設定に書き換える !! -------------------
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let tasks = [];
     let currentUser = null;
     let unsubscribeTasks = null;
-    let userSettings = {}; // 【新規】ユーザー設定を保持するオブジェクト
+    let userSettings = {}; 
 
     // DOM Elements
     const loginContainer = document.getElementById('login-container');
@@ -34,8 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const fab = document.getElementById('fab-add-task');
     const taskPanel = document.getElementById('task-panel');
     const taskForm = document.getElementById('task-form');
+    const overlay = document.getElementById('overlay');
 
-    // 【新規】設定パネル関連のDOM Elements
+    // 設定パネル関連のDOM Elements
     const settingsBtn = document.getElementById('settings-btn');
     const settingsPanel = document.getElementById('settings-panel');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
@@ -56,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appContainer.style.display = 'block';
             fab.style.display = 'block';
             userEmailDisplay.textContent = currentUser.email;
-            loadSettings(); // 設定を読み込む
+            loadSettings(); 
             listenForTasks();
         } else {
             currentUser = null;
@@ -101,40 +102,29 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function loadSettings() {
-        // ローカルストレージから設定を読み込む。なければデフォルト値を使う。
         const savedSettings = localStorage.getItem(`settings_${currentUser.uid}`);
         userSettings = savedSettings ? JSON.parse(savedSettings) : { ...defaultSettings };
         applySettingsToApp();
     }
 
     function saveAndApplySettings() {
-        // UIから設定値を取得
         userSettings.dueDatePosition = dueDatePositionSetting.querySelector('.active').dataset.value;
         userSettings.deadlineDays = parseInt(deadlineDaysInput.value, 10);
         userSettings.deadlineColor = deadlineColorInput.value;
         
-        // localStorageにユーザーごとのキーで保存
         localStorage.setItem(`settings_${currentUser.uid}`, JSON.stringify(userSettings));
         
         applySettingsToApp();
         closeSettingsPanel();
-        renderTasks(); // 設定を即時反映させるためにタスクを再描画
+        renderTasks(); 
     }
 
     function applySettingsToApp() {
-        // 期限表示位置の設定をbodyのクラスに反映
-        if (userSettings.dueDatePosition === 'inline') {
-            document.body.classList.add('view-inline');
-        } else {
-            document.body.classList.remove('view-inline');
-        }
-
-        // 警告色のCSSカスタムプロパティを更新
+        document.body.classList.toggle('view-inline', userSettings.dueDatePosition === 'inline');
         document.documentElement.style.setProperty('--warning-color', userSettings.deadlineColor);
     }
     
     function openSettingsPanel() {
-        // 現在保存されている設定をUIに反映
         dueDatePositionSetting.querySelector('.active')?.classList.remove('active');
         dueDatePositionSetting.querySelector(`[data-value="${userSettings.dueDatePosition}"]`).classList.add('active');
         deadlineDaysInput.value = userSettings.deadlineDays;
@@ -149,14 +139,10 @@ document.addEventListener('DOMContentLoaded', () => {
         overlay.classList.remove('is-open');
     }
 
-    // 設定関連のイベントリスナー
     settingsBtn.addEventListener('click', openSettingsPanel);
     closeSettingsBtn.addEventListener('click', closeSettingsPanel);
     saveSettingsBtn.addEventListener('click', saveAndApplySettings);
-    overlay.addEventListener('click', () => { // オーバーレイクリックで設定もタスクパネルも閉じる
-        closeSettingsPanel();
-        closeTaskPanel();
-    });
+    
     dueDatePositionSetting.addEventListener('click', e => {
         if(e.target.matches('.setting-tab')) {
             dueDatePositionSetting.querySelector('.active')?.classList.remove('active');
@@ -164,12 +150,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 設定パネルをドラッグで移動させる処理
     let isDragging = false;
     let offset = { x: 0, y: 0 };
     const settingsHeader = document.getElementById('settings-panel-header');
     settingsHeader.addEventListener('mousedown', e => {
-        // パネル内のボタン等でのドラッグ開始を防ぐ
         if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
         isDragging = true;
         offset = {
@@ -222,6 +206,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const list = document.querySelector(`#${task.quadrant} .task-list`);
             if (list) list.appendChild(createTaskElement(task));
         });
+        // 【修正】適用時にタスクのクラスも更新する
+        applySettingsToApp();
     }
 
     function createTaskElement(task) {
@@ -241,7 +227,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const startDateHTML = task.startDate ? `<span class="start-date">▶ ${task.startDate}</span>` : '';
         const dueDateHTML = task.dueDate ? `<span class="due-date ${getDueDateClass(task.dueDate)}">🏁 ${task.dueDate}</span>` : '';
         const metaHTML = (startDateHTML || dueDateHTML) ? `<div class="task-meta">${startDateHTML}${dueDateHTML}</div>` : '';
-
+        
+        // 【修正】innerHTMLを正しい内容に修正
         li.innerHTML = `
             <div class="task-item-content">
                 <div class="task-main">
@@ -296,6 +283,11 @@ document.addEventListener('DOMContentLoaded', () => {
     fab.addEventListener('click', () => openTaskPanel());
     closePanelBtn.addEventListener('click', closeTaskPanel);
     
+    overlay.addEventListener('click', () => {
+        closeTaskPanel();
+        closeSettingsPanel();
+    });
+    
     quadrantTabs.addEventListener('click', e => {
         if (e.target.matches('.quadrant-tab')) {
             quadrantTabs.querySelector('.active')?.classList.remove('active');
@@ -325,7 +317,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeTaskPanel() {
         taskPanel.classList.remove('is-open');
-        overlay.classList.remove('is-open');
+        // 他のパネルが開いていなければオーバーレイを閉じる
+        if (!settingsPanel.style.display || settingsPanel.style.display === 'none') {
+            overlay.classList.remove('is-open');
+        }
     }
 
     taskForm.addEventListener('submit', e => {

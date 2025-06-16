@@ -1,20 +1,15 @@
-// --- START OF FILE script.js (オプション機能・最終修正版) ---
-
 document.addEventListener('DOMContentLoaded', () => {
     // ------------------- !! ここを自分の設定に書き換える !! -------------------
     const firebaseConfig = {
-        // ↓↓↓↓ あなたのFirebaseプロジェクトの設定情報に書き換えてください ↓↓↓↓
       apiKey: "AIzaSyA3t3i36UNhyLXQMImx9QckMAvbJMFUtMc",
       authDomain: "my-task-app-e7811.firebaseapp.com",
       projectId: "my-task-app-e7811",
       storageBucket: "my-task-app-e7811.firebasestorage.app",
       messagingSenderId: "73821534483",
       appId: "1:73821534483:web:bd073665ecba1eae91c2e6"
-        // ↑↑↑↑ ここまでを書き換える ↑↑↑↑
     };
     // -------------------------------------------------------------------------
 
-    // Firebase初期化
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
@@ -35,8 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskPanel = document.getElementById('task-panel');
     const taskForm = document.getElementById('task-form');
     const overlay = document.getElementById('overlay');
-
-    // 設定パネル関連のDOM Elements
     const settingsBtn = document.getElementById('settings-btn');
     const settingsPanel = document.getElementById('settings-panel');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
@@ -44,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dueDatePositionSetting = document.getElementById('due-date-position-setting');
     const deadlineDaysInput = document.getElementById('deadline-days-input');
     const deadlineColorInput = document.getElementById('deadline-color-input');
-
+    const deleteCompletedBtn = document.getElementById('delete-completed-btn');
 
     // =================================================================
     //  初期化と認証
@@ -136,7 +129,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeSettingsPanel() {
         settingsPanel.style.display = 'none';
-        overlay.classList.remove('is-open');
+        if (!taskPanel.classList.contains('is-open')) {
+            overlay.classList.remove('is-open');
+        }
     }
 
     settingsBtn.addEventListener('click', openSettingsPanel);
@@ -206,8 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const list = document.querySelector(`#${task.quadrant} .task-list`);
             if (list) list.appendChild(createTaskElement(task));
         });
-        // 【修正】適用時にタスクのクラスも更新する
-        applySettingsToApp();
     }
 
     function createTaskElement(task) {
@@ -228,7 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const dueDateHTML = task.dueDate ? `<span class="due-date ${getDueDateClass(task.dueDate)}">🏁 ${task.dueDate}</span>` : '';
         const metaHTML = (startDateHTML || dueDateHTML) ? `<div class="task-meta">${startDateHTML}${dueDateHTML}</div>` : '';
         
-        // 【修正】innerHTMLを正しい内容に修正
         li.innerHTML = `
             <div class="task-item-content">
                 <div class="task-main">
@@ -272,7 +264,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let editingTaskId = null;
     const panelTitle = document.getElementById('panel-title');
-    const taskIdInput = document.getElementById('task-id-input');
     const taskTitleInput = document.getElementById('task-title-input');
     const taskMemoInput = document.getElementById('task-memo-input');
     const dueDateInput = document.getElementById('task-due-date-input');
@@ -317,7 +308,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeTaskPanel() {
         taskPanel.classList.remove('is-open');
-        // 他のパネルが開いていなければオーバーレイを閉じる
         if (!settingsPanel.style.display || settingsPanel.style.display === 'none') {
             overlay.classList.remove('is-open');
         }
@@ -344,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closeTaskPanel();
     });
 
-    document.getElementById('delete-completed-btn').addEventListener('click', () => {
+    deleteCompletedBtn.addEventListener('click', () => {
         const completedTasks = tasks.filter(t => t.completed);
         if (completedTasks.length === 0) return alert('完了済みのタスクがありません。');
         if (confirm(`${completedTasks.length}件の完了済みタスクを削除しますか？`)) {

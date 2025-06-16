@@ -3,12 +3,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     // ------------------- !! ここを自分の設定に書き換える !! -------------------
     const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyA3t3i36UNhyLXQMImx9QckMAvbJMFUtMc",
+      authDomain: "my-task-app-e7811.firebaseapp.com",
+      projectId: "my-task-app-e7811",
+      storageBucket: "my-task-app-e7811.firebasestorage.app",
+      messagingSenderId: "73821534483",
+      appId: "1:73821534483:web:bd073665ecba1eae91c2e6"
     };
     // -------------------------------------------------------------------------
 

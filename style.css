@@ -100,3 +100,87 @@ body { font-family: sans-serif; background-color: #f4f7f6; margin: 0; }
     align-items: center;
     gap: 4px;
 }
+/* --- 設定パネル --- */
+.settings-panel {
+    position: fixed;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.25);
+    z-index: 1002;
+    width: 380px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.settings-panel .panel-header {
+    cursor: move; /* ドラッグで移動できることを示すカーソル */
+}
+.settings-panel .panel-footer {
+    padding: 15px 20px;
+    text-align: right;
+    border-top: 1px solid #eee;
+}
+.settings-panel .panel-footer button {
+    padding: 8px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* --- 設定項目UI --- */
+.setting-tabs {
+    display: flex;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    overflow: hidden;
+}
+.setting-tab {
+    flex: 1;
+    padding: 8px;
+    text-align: center;
+    background: #f0f0f0;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.setting-tab.active {
+    background: var(--primary-color);
+    color: white;
+}
+.deadline-setting {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.deadline-setting input[type="number"] {
+    width: 50px;
+    padding: 5px;
+}
+.deadline-setting input[type="color"] {
+    width: 40px;
+    height: 30px;
+    padding: 2px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* --- オプション反映用スタイル --- */
+/* 期限を横に表示するスタイル */
+.task-item.view-inline .task-main {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+.task-item.view-inline .task-details {
+    flex-grow: 0; /* 横幅を自動調整 */
+}
+.task-item.view-inline .task-meta {
+    margin-top: 0;
+    margin-left: 10px;
+}
+.due-date.warning {
+    background-color: var(--warning-color, #f1c40f); /* デフォルトは黄色 */
+    color: white;
+}

@@ -28,6 +28,7 @@
             <h1>アイゼンハワーマトリクス</h1>
             <div>
                 <span id="user-email-display"></span>
+                <button id="settings-btn" class="icon-btn" title="設定">⚙️</button>
                 <button id="logout-btn" class="icon-btn" title="ログアウト">📤</button>
             </div>
         </header>
@@ -84,7 +85,36 @@
         </div>
     </div>
     <div id="overlay"></div>
-
+    <!-- 設定パネル -->
+    <div id="settings-panel" class="settings-panel" style="display: none;">
+        <div class="panel-header" id="settings-panel-header">
+            <h3>設定</h3>
+            <button id="close-settings-btn" class="icon-btn">×</button>
+        </div>
+        <div class="panel-content">
+            <div class="form-group">
+                <label>期限の表示位置</label>
+                <div class="setting-tabs" id="due-date-position-setting">
+                    <div class="setting-tab" data-value="bottom">下に表示</div>
+                    <div class="setting-tab" data-value="inline">横に表示</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>期日の警告表示</label>
+                <div class="deadline-setting">
+                    <span>期日の</span>
+                    <input type="number" id="deadline-days-input" min="0" value="3">
+                    <span>日前に</span>
+                    <input type="color" id="deadline-color-input" value="#f1c40f">
+                    <span>色で警告</span>
+                </div>
+            </div>
+        </div>
+        <div class="panel-footer">
+            <button id="save-settings-btn">保存して閉じる</button>
+        </div>
+    </div>
+    
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>

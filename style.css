@@ -103,3 +103,109 @@ body.view-inline .task-item .task-meta {
     .task-panel { width: 100%; bottom: 0; right: 0; border-radius: 10px 10px 0 0; }
     .settings-panel { width: 90%; }
 }
+/* --- 表示モード切り替えタブ --- */
+.view-switcher {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 5px;
+}
+.view-tab {
+    padding: 10px 20px;
+    border: 1px solid #ccc;
+    background-color: #f0f0f0;
+    cursor: pointer;
+    border-radius: 5px 5px 0 0;
+    border-bottom: none;
+    font-size: 1em;
+}
+.view-tab.active {
+    background-color: #fff;
+    border-bottom: 1px solid #fff;
+    position: relative;
+    top: 1px;
+}
+
+/* --- ガントチャート --- */
+.gantt-actions {
+    margin-bottom: 15px;
+}
+.gantt-actions button {
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+    color: white;
+    background-color: var(--primary-color);
+}
+.gantt-chart-container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+/* ガントチャートライブラリのスタイル調整 */
+.gantt .bar-label {
+    font-size: 14px;
+    font-weight: 500;
+}
+.gantt .grid-header {
+    fill: #f5f5f5;
+}
+.gantt .grid-row:nth-child(even) {
+    fill: #fafafa;
+}
+
+/* --- ガントチャート追加用モーダル --- */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1003;
+}
+.modal-content {
+    background: white;
+    border-radius: 10px;
+    width: 450px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+.modal-content .panel-content {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+.dateless-task-list {
+    list-style-type: none;
+    padding: 0;
+    margin-bottom: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 5px;
+}
+.dateless-task-list li {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+.dateless-task-list li:last-child {
+    border-bottom: none;
+}
+.dateless-task-list li:hover {
+    background-color: #f5f5f5;
+}
+.dateless-task-list li.selected {
+    background-color: var(--primary-color);
+    color: white;
+}
+#gantt-task-title[readonly] {
+    background: #eee;
+    font-weight: bold;
+}

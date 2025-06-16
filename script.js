@@ -1,4 +1,4 @@
-// --- START OF FILE script.js (修正版) ---
+// --- START OF FILE script.js (機能追加版) ---
 
 document.addEventListener('DOMContentLoaded', () => {
     // ------------------- !! ここを自分の設定に書き換える !! -------------------
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let tasks = [];
     let currentUser = null;
-    let unsubscribeTasks = null; // リアルタイムリスナーの解除用
+    let unsubscribeTasks = null;
 
     // DOM Elements
     const loginContainer = document.getElementById('login-container');
@@ -34,10 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskPanel = document.getElementById('task-panel');
     const taskForm = document.getElementById('task-form');
     
-    // --- 認証状態の監視 ---
     auth.onAuthStateChanged(user => {
         if (user) {
-            // ログイン済み
             currentUser = user;
             loginContainer.style.display = 'none';
             appContainer.style.display = 'block';
@@ -45,56 +43,38 @@ document.addEventListener('DOMContentLoaded', () => {
             userEmailDisplay.textContent = currentUser.email;
             listenForTasks();
         } else {
-            // ログアウト済み
             currentUser = null;
             loginContainer.style.display = 'flex';
             appContainer.style.display = 'none';
             fab.style.display = 'none';
-            if (unsubscribeTasks) unsubscribeTasks(); // リスナーを解除
+            if (unsubscribeTasks) unsubscribeTasks();
         }
     });
 
-    // --- イベントリスナー ---
     loginForm.addEventListener('submit', e => {
         e.preventDefault();
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
-        
-        // エラーメッセージを一旦リセット
         loginError.textContent = '';
-
         auth.signInWithEmailAndPassword(email, password)
             .catch(error => {
-                console.error("ログインエラー:", error.code); // 開発用にコンソールにエラーコードを出力
+                console.error("ログインエラー:", error.code);
                 let message = 'ログインに失敗しました。';
                 switch (error.code) {
-                    case 'auth/invalid-email':
-                        message = '無効なメールアドレス形式です。';
-                        break;
-                    case 'auth/user-not-found':
-                        message = 'このメールアドレスは登録されていません。';
-                        break;
-                    case 'auth/wrong-password':
-                        message = 'パスワードが間違っています。';
-                        break;
-                    case 'auth/too-many-requests':
-                        message = '試行回数が多すぎます。後でもう一度お試しください。';
-                        break;
-                    default:
-                        message = 'エラーが発生しました。時間をおいて再度お試しください。';
+                    case 'auth/invalid-email': message = '無効なメールアドレス形式です。'; break;
+                    case 'auth/user-not-found': message = 'このメールアドレスは登録されていません。'; break;
+                    case 'auth/wrong-password': message = 'パスワードが間違っています。'; break;
+                    case 'auth/too-many-requests': message = '試行回数が多すぎます。後でもう一度お試しください。'; break;
+                    default: message = 'エラーが発生しました。時間をおいて再度お試しください。';
                 }
                 loginError.textContent = message;
             });
     });
 
-    logoutBtn.addEventListener('click', () => {
-        auth.signOut();
-    });
+    logoutBtn.addEventListener('click', () => auth.signOut());
 
-    // --- タスクデータのリアルタイム監視 ---
     function listenForTasks() {
-        if (unsubscribeTasks) unsubscribeTasks(); // 古いリスナーを解除
-
+        if (unsubscribeTasks) unsubscribeTasks();
         unsubscribeTasks = db.collection('tasks')
             .where('userId', '==', currentUser.uid)
             .orderBy('createdAt', 'desc')
@@ -106,10 +86,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderTasks();
             }, error => {
                 console.error("タスクの取得に失敗しました:", error);
+                if (error.code === 'failed-precondition') {
+                    const link = error.message.match(/https?:\/\/[^\s]+/);
+                    if (link) {
+                       loginError.innerHTML = `タスクの取得に失敗しました。データベースのインデックスが必要です。<a href="${link[0]}" target="_blank">こちらをクリックしてインデックスを作成してください。</a>`;
+                    }
+                }
             });
     }
 
-    // --- タスク描画 ---
     function renderTasks() {
         document.querySelectorAll('.task-list').forEach(list => list.innerHTML = '');
         tasks.forEach(task => {
@@ -124,6 +109,21 @@ document.addEventListener('DOMContentLoaded', () => {
         li.className = `task-item ${task.completed ? 'completed' : ''}`;
         li.draggable = true;
         
+        // ---【変更点】ここからD&Dイベントリスナーを追加 ---
+        li.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text/plain', task.id);
+            setTimeout(() => li.classList.add('dragging'), 0);
+        });
+        li.addEventListener('dragend', () => {
+            li.classList.remove('dragging');
+        });
+        // --- D&Dイベントリスナーここまで ---
+
+        // ---【変更点】開始日と期日のHTMLを追加 ---
+        const startDateHTML = task.startDate ? `<span class="start-date">▶ ${task.startDate}</span>` : '';
+        const dueDateHTML = task.dueDate ? `<span class="due-date ${getDueDateClass(task.dueDate)}">🏁 ${task.dueDate}</span>` : '';
+        const metaHTML = (startDateHTML || dueDateHTML) ? `<div class="task-meta">${startDateHTML}${dueDateHTML}</div>` : '';
+
         li.innerHTML = `
             <div class="task-item-content">
                 <div class="task-main">
@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${task.memo ? `<div class="task-memo">${escapeHTML(task.memo)}</div>` : ''}
                     </div>
                 </div>
-                ${task.dueDate ? `<div class="task-meta"><span class="due-date ${getDueDateClass(task.dueDate)}">${task.dueDate}</span></div>` : ''}
+                ${metaHTML}
             </div>
         `;
 
@@ -141,17 +141,37 @@ document.addEventListener('DOMContentLoaded', () => {
             db.collection('tasks').doc(task.id).update({ completed: !task.completed });
         });
         li.addEventListener('click', e => { if (e.target.type !== 'checkbox') openTaskPanel(task); });
-        // Drag & Drop event listeners should be added here
+        
         return li;
     }
+    
+    // ---【新規】D&Dのドロップ先の処理を追加 ---
+    document.querySelectorAll('.quadrant').forEach(quadrant => {
+        quadrant.addEventListener('dragover', e => {
+            e.preventDefault();
+            quadrant.classList.add('drag-over');
+        });
+        quadrant.addEventListener('dragleave', () => {
+            quadrant.classList.remove('drag-over');
+        });
+        quadrant.addEventListener('drop', e => {
+            e.preventDefault();
+            quadrant.classList.remove('drag-over');
+            const taskId = e.dataTransfer.getData('text/plain');
+            const newQuadrantId = quadrant.dataset.quadrantId;
+            const task = tasks.find(t => t.id === taskId);
+            if (task && task.quadrant !== newQuadrantId) {
+                db.collection('tasks').doc(taskId).update({ quadrant: newQuadrantId });
+            }
+        });
+    });
 
-    // --- タスクパネル操作 ---
     let editingTaskId = null;
     const panelTitle = document.getElementById('panel-title');
-    const taskIdInput = document.getElementById('task-id-input');
     const taskTitleInput = document.getElementById('task-title-input');
     const taskMemoInput = document.getElementById('task-memo-input');
     const dueDateInput = document.getElementById('task-due-date-input');
+    const startDateInput = document.getElementById('task-start-date-input'); //【追加】
     const quadrantTabs = document.querySelector('.quadrant-tabs');
     const closePanelBtn = document.getElementById('close-panel-btn');
     const overlay = document.getElementById('overlay');
@@ -176,6 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
             taskTitleInput.value = task.title;
             taskMemoInput.value = task.memo || '';
             dueDateInput.value = task.dueDate || '';
+            startDateInput.value = task.startDate || ''; //【追加】
             quadrantTabs.querySelector(`[data-value="${task.quadrant}"]`).classList.add('active');
         } else {
             editingTaskId = null;
@@ -191,22 +212,20 @@ document.addEventListener('DOMContentLoaded', () => {
         overlay.classList.remove('is-open');
     }
 
-    // --- タスクの保存/更新 ---
     taskForm.addEventListener('submit', e => {
         e.preventDefault();
         const taskData = {
             title: taskTitleInput.value.trim(),
             memo: taskMemoInput.value.trim(),
             dueDate: dueDateInput.value,
+            startDate: startDateInput.value, //【追加】
             quadrant: quadrantTabs.querySelector('.active').dataset.value,
             userId: currentUser.uid
         };
 
         if (editingTaskId) {
-            // 更新
             db.collection('tasks').doc(editingTaskId).update(taskData);
         } else {
-            // 新規作成
             taskData.completed = false;
             taskData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
             db.collection('tasks').add(taskData);
@@ -214,11 +233,9 @@ document.addEventListener('DOMContentLoaded', () => {
         closeTaskPanel();
     });
 
-    // --- 完了済みタスクの削除 ---
     document.getElementById('delete-completed-btn').addEventListener('click', () => {
         const completedTasks = tasks.filter(t => t.completed);
         if (completedTasks.length === 0) return alert('完了済みのタスクがありません。');
-        
         if (confirm(`${completedTasks.length}件の完了済みタスクを削除しますか？`)) {
             const batch = db.batch();
             completedTasks.forEach(task => {
@@ -228,7 +245,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- ヘルパー関数 ---
     function escapeHTML(str) {
         const p = document.createElement('p');
         p.textContent = str;

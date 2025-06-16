@@ -57,9 +57,31 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
+        
+        // エラーメッセージを一旦リセット
+        loginError.textContent = '';
+
         auth.signInWithEmailAndPassword(email, password)
             .catch(error => {
-                loginError.textContent = 'メールアドレスまたはパスワードが違います。';
+                console.error("ログインエラー:", error.code); // 開発用にコンソールにエラーコードを出力
+                let message = 'ログインに失敗しました。';
+                switch (error.code) {
+                    case 'auth/invalid-email':
+                        message = '無効なメールアドレス形式です。';
+                        break;
+                    case 'auth/user-not-found':
+                        message = 'このメールアドレスは登録されていません。';
+                        break;
+                    case 'auth/wrong-password':
+                        message = 'パスワードが間違っています。';
+                        break;
+                    case 'auth/too-many-requests':
+                        message = '試行回数が多すぎます。後でもう一度お試しください。';
+                        break;
+                    default:
+                        message = 'エラーが発生しました。時間をおいて再度お試しください。';
+                }
+                loginError.textContent = message;
             });
     });
 

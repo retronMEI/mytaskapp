@@ -1,16 +1,16 @@
-// --- START OF FILE script.js (機能追加版) ---
+// --- START OF FILE script.js (オプション機能追加・完全版) ---
 
 document.addEventListener('DOMContentLoaded', () => {
     // ------------------- !! ここを自分の設定に書き換える !! -------------------
     const firebaseConfig = {
-      // ↓↓↓↓ あなたのFirebaseプロジェクトの設定情報に書き換えてください ↓↓↓↓
+        // ↓↓↓↓ あなたのFirebaseプロジェクトの設定情報に書き換えてください ↓↓↓↓
       apiKey: "AIzaSyA3t3i36UNhyLXQMImx9QckMAvbJMFUtMc",
       authDomain: "my-task-app-e7811.firebaseapp.com",
       projectId: "my-task-app-e7811",
       storageBucket: "my-task-app-e7811.firebasestorage.app",
       messagingSenderId: "73821534483",
       appId: "1:73821534483:web:bd073665ecba1eae91c2e6"
-      // ↑↑↑↑ ここまでを書き換える ↑↑↑↑
+        // ↑↑↑↑ ここまでを書き換える ↑↑↑↑
     };
     // -------------------------------------------------------------------------
 
@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let tasks = [];
     let currentUser = null;
     let unsubscribeTasks = null;
+    let userSettings = {}; // 【新規】ユーザー設定を保持するオブジェクト
 
     // DOM Elements
     const loginContainer = document.getElementById('login-container');
@@ -33,6 +34,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const fab = document.getElementById('fab-add-task');
     const taskPanel = document.getElementById('task-panel');
     const taskForm = document.getElementById('task-form');
+
+    // 【新規】設定パネル関連のDOM Elements
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsPanel = document.getElementById('settings-panel');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const dueDatePositionSetting = document.getElementById('due-date-position-setting');
+    const deadlineDaysInput = document.getElementById('deadline-days-input');
+    const deadlineColorInput = document.getElementById('deadline-color-input');
+
+
+    // =================================================================
+    //  初期化と認証
+    // =================================================================
     
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -41,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appContainer.style.display = 'block';
             fab.style.display = 'block';
             userEmailDisplay.textContent = currentUser.email;
+            loadSettings(); // 設定を読み込む
             listenForTasks();
         } else {
             currentUser = null;
@@ -73,6 +89,111 @@ document.addEventListener('DOMContentLoaded', () => {
 
     logoutBtn.addEventListener('click', () => auth.signOut());
 
+
+    // =================================================================
+    //  設定 (Settings)
+    // =================================================================
+    
+    const defaultSettings = {
+        dueDatePosition: 'bottom',
+        deadlineDays: 3,
+        deadlineColor: '#f1c40f'
+    };
+
+    function loadSettings() {
+        // ローカルストレージから設定を読み込む。なければデフォルト値を使う。
+        const savedSettings = localStorage.getItem(`settings_${currentUser.uid}`);
+        userSettings = savedSettings ? JSON.parse(savedSettings) : { ...defaultSettings };
+        applySettingsToApp();
+    }
+
+    function saveAndApplySettings() {
+        // UIから設定値を取得
+        userSettings.dueDatePosition = dueDatePositionSetting.querySelector('.active').dataset.value;
+        userSettings.deadlineDays = parseInt(deadlineDaysInput.value, 10);
+        userSettings.deadlineColor = deadlineColorInput.value;
+        
+        // localStorageにユーザーごとのキーで保存
+        localStorage.setItem(`settings_${currentUser.uid}`, JSON.stringify(userSettings));
+        
+        applySettingsToApp();
+        closeSettingsPanel();
+        renderTasks(); // 設定を即時反映させるためにタスクを再描画
+    }
+
+    function applySettingsToApp() {
+        // 期限表示位置の設定をbodyのクラスに反映
+        if (userSettings.dueDatePosition === 'inline') {
+            document.body.classList.add('view-inline');
+        } else {
+            document.body.classList.remove('view-inline');
+        }
+
+        // 警告色のCSSカスタムプロパティを更新
+        document.documentElement.style.setProperty('--warning-color', userSettings.deadlineColor);
+    }
+    
+    function openSettingsPanel() {
+        // 現在保存されている設定をUIに反映
+        dueDatePositionSetting.querySelector('.active')?.classList.remove('active');
+        dueDatePositionSetting.querySelector(`[data-value="${userSettings.dueDatePosition}"]`).classList.add('active');
+        deadlineDaysInput.value = userSettings.deadlineDays;
+        deadlineColorInput.value = userSettings.deadlineColor;
+        
+        settingsPanel.style.display = 'block';
+        overlay.classList.add('is-open');
+    }
+
+    function closeSettingsPanel() {
+        settingsPanel.style.display = 'none';
+        overlay.classList.remove('is-open');
+    }
+
+    // 設定関連のイベントリスナー
+    settingsBtn.addEventListener('click', openSettingsPanel);
+    closeSettingsBtn.addEventListener('click', closeSettingsPanel);
+    saveSettingsBtn.addEventListener('click', saveAndApplySettings);
+    overlay.addEventListener('click', () => { // オーバーレイクリックで設定もタスクパネルも閉じる
+        closeSettingsPanel();
+        closeTaskPanel();
+    });
+    dueDatePositionSetting.addEventListener('click', e => {
+        if(e.target.matches('.setting-tab')) {
+            dueDatePositionSetting.querySelector('.active')?.classList.remove('active');
+            e.target.classList.add('active');
+        }
+    });
+
+    // 設定パネルをドラッグで移動させる処理
+    let isDragging = false;
+    let offset = { x: 0, y: 0 };
+    const settingsHeader = document.getElementById('settings-panel-header');
+    settingsHeader.addEventListener('mousedown', e => {
+        // パネル内のボタン等でのドラッグ開始を防ぐ
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+        isDragging = true;
+        offset = {
+            x: settingsPanel.offsetLeft - e.clientX,
+            y: settingsPanel.offsetTop - e.clientY
+        };
+        settingsHeader.style.cursor = 'grabbing';
+    });
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        settingsHeader.style.cursor = 'move';
+    });
+    document.addEventListener('mousemove', e => {
+        if (!isDragging) return;
+        e.preventDefault();
+        settingsPanel.style.left = (e.clientX + offset.x) + 'px';
+        settingsPanel.style.top = (e.clientY + offset.y) + 'px';
+    });
+
+
+    // =================================================================
+    //  タスク関連
+    // =================================================================
+    
     function listenForTasks() {
         if (unsubscribeTasks) unsubscribeTasks();
         unsubscribeTasks = db.collection('tasks')
@@ -109,7 +230,6 @@ document.addEventListener('DOMContentLoaded', () => {
         li.className = `task-item ${task.completed ? 'completed' : ''}`;
         li.draggable = true;
         
-        // ---【変更点】ここからD&Dイベントリスナーを追加 ---
         li.addEventListener('dragstart', e => {
             e.dataTransfer.setData('text/plain', task.id);
             setTimeout(() => li.classList.add('dragging'), 0);
@@ -117,9 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
         li.addEventListener('dragend', () => {
             li.classList.remove('dragging');
         });
-        // --- D&Dイベントリスナーここまで ---
-
-        // ---【変更点】開始日と期日のHTMLを追加 ---
+        
         const startDateHTML = task.startDate ? `<span class="start-date">▶ ${task.startDate}</span>` : '';
         const dueDateHTML = task.dueDate ? `<span class="due-date ${getDueDateClass(task.dueDate)}">🏁 ${task.dueDate}</span>` : '';
         const metaHTML = (startDateHTML || dueDateHTML) ? `<div class="task-meta">${startDateHTML}${dueDateHTML}</div>` : '';
@@ -145,7 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return li;
     }
     
-    // ---【新規】D&Dのドロップ先の処理を追加 ---
     document.querySelectorAll('.quadrant').forEach(quadrant => {
         quadrant.addEventListener('dragover', e => {
             e.preventDefault();
@@ -168,17 +285,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let editingTaskId = null;
     const panelTitle = document.getElementById('panel-title');
+    const taskIdInput = document.getElementById('task-id-input');
     const taskTitleInput = document.getElementById('task-title-input');
     const taskMemoInput = document.getElementById('task-memo-input');
     const dueDateInput = document.getElementById('task-due-date-input');
-    const startDateInput = document.getElementById('task-start-date-input'); //【追加】
+    const startDateInput = document.getElementById('task-start-date-input');
     const quadrantTabs = document.querySelector('.quadrant-tabs');
     const closePanelBtn = document.getElementById('close-panel-btn');
-    const overlay = document.getElementById('overlay');
     
     fab.addEventListener('click', () => openTaskPanel());
     closePanelBtn.addEventListener('click', closeTaskPanel);
-    overlay.addEventListener('click', closeTaskPanel);
     
     quadrantTabs.addEventListener('click', e => {
         if (e.target.matches('.quadrant-tab')) {
@@ -196,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
             taskTitleInput.value = task.title;
             taskMemoInput.value = task.memo || '';
             dueDateInput.value = task.dueDate || '';
-            startDateInput.value = task.startDate || ''; //【追加】
+            startDateInput.value = task.startDate || '';
             quadrantTabs.querySelector(`[data-value="${task.quadrant}"]`).classList.add('active');
         } else {
             editingTaskId = null;
@@ -218,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title: taskTitleInput.value.trim(),
             memo: taskMemoInput.value.trim(),
             dueDate: dueDateInput.value,
-            startDate: startDateInput.value, //【追加】
+            startDate: startDateInput.value,
             quadrant: quadrantTabs.querySelector('.active').dataset.value,
             userId: currentUser.uid
         };
@@ -246,6 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function escapeHTML(str) {
+        if (!str) return '';
         const p = document.createElement('p');
         p.textContent = str;
         return p.innerHTML;
@@ -253,9 +370,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function getDueDateClass(dueDateStr) {
         if (!dueDateStr) return '';
-        const today = new Date(); today.setHours(0,0,0,0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         const dueDate = new Date(dueDateStr);
+        
         if (dueDate < today) return 'overdue';
+
+        const deadline = new Date(today);
+        deadline.setDate(today.getDate() + userSettings.deadlineDays);
+        if (dueDate <= deadline) return 'warning';
+
         return '';
     }
 });

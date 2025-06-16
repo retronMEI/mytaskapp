@@ -1,3 +1,5 @@
+// --- START OF FILE script.js (最終修正・完全版) ---
+
 document.addEventListener('DOMContentLoaded', () => {
     // ------------------- !! ここを自分の設定に書き換える !! -------------------
     const firebaseConfig = {
@@ -20,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let userSettings = {}; 
     let gantt = null; 
 
+    // DOM Elements
     const loginContainer = document.getElementById('login-container');
     const appContainer = document.getElementById('app-container');
     const loginForm = document.getElementById('login-form');
@@ -192,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tasks = [];
             querySnapshot.forEach(doc => { tasks.push({ id: doc.id, ...doc.data() }); });
             renderTasks();
-            renderGanttChart(); 
+            if (gantt) renderGanttChart(); 
         }, error => {
             console.error("タスクの取得に失敗しました:", error);
             if (error.code === 'failed-precondition' && error.message.includes('index')) {
@@ -312,8 +315,8 @@ document.addEventListener('DOMContentLoaded', () => {
         else {
             taskData.completed = false;
             taskData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-            const lastOrder = tasks.length > 0 ? tasks[tasks.length - 1].order : 0;
-            taskData.order = (lastOrder || Date.now()) + 1000;
+            const lastTask = tasks.length > 0 ? tasks[tasks.length - 1] : null;
+            taskData.order = (lastTask ? lastTask.order : Date.now()) + 1000;
             db.collection('tasks').add(taskData);
         }
         closeTaskPanel();
@@ -333,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!ganttView.style.display || ganttView.style.display === 'none') return;
         const ganttTasks = tasks.filter(task => task.startDate && task.dueDate).map(task => ({
             id: task.id, name: task.title, start: task.startDate, end: task.dueDate,
-            progress: task.completed ? 100 : 0, custom_class: `bar-${task.quadrant}`
+            progress: task.completed ? 100 : 0, custom_class: `bar-${task.quadrant} ${task.completed ? 'bar-completed' : ''}`
         }));
         const ganttContainer = document.getElementById('gantt-chart');
         ganttContainer.innerHTML = ''; 
@@ -352,7 +355,11 @@ document.addEventListener('DOMContentLoaded', () => {
     addToGanttBtn.addEventListener('click', () => {
         datelessTaskList.innerHTML = '';
         const datelessTasks = tasks.filter(t => !t.startDate || !t.dueDate);
-        if (datelessTasks.length === <strong>0</strong>) { alert('日付が未設定のタスクはありません。'); return; }
+        // 【修正】HTMLタグが混入していた箇所を修正
+        if (datelessTasks.length === 0) { 
+            alert('日付が未設定のタスクはありません。');
+            return;
+        }
         datelessTasks.forEach(task => {
             const li = document.createElement('li');
             li.textContent = task.title;

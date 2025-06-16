@@ -1,13 +1,17 @@
+// --- START OF FILE script.js (修正版) ---
+
 document.addEventListener('DOMContentLoaded', () => {
     // ------------------- !! ここを自分の設定に書き換える !! -------------------
     const firebaseConfig = {
+      // ↓↓↓↓ あなたのFirebaseプロジェクトの設定情報に書き換えてください ↓↓↓↓
       apiKey: "AIzaSyA3t3i36UNhyLXQMImx9QckMAvbJMFUtMc",
       authDomain: "my-task-app-e7811.firebaseapp.com",
       projectId: "my-task-app-e7811",
       storageBucket: "my-task-app-e7811.firebasestorage.app",
       messagingSenderId: "73821534483",
       appId: "1:73821534483:web:bd073665ecba1eae91c2e6"
-};
+      // ↑↑↑↑ ここまでを書き換える ↑↑↑↑
+    };
     // -------------------------------------------------------------------------
 
     // Firebase初期化
@@ -29,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const fab = document.getElementById('fab-add-task');
     const taskPanel = document.getElementById('task-panel');
     const taskForm = document.getElementById('task-form');
-    // ... 他のDOM要素も必要に応じて取得 ...
     
     // --- 認証状態の監視 ---
     auth.onAuthStateChanged(user => {

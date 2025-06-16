@@ -5,8 +5,23 @@
     --q2-color: #3498db;
     --q3-color: #f1c40f;
     --q4-color: #2ecc71;
+    --warning-color: #f1c40f; /* 動的に変更される警告色 */
 }
 body { font-family: sans-serif; background-color: #f4f7f6; margin: 0; }
+
+/* 期限を横に表示するスタイル */
+body.view-inline .task-item .task-main {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+body.view-inline .task-item .task-details {
+    flex-grow: 0;
+}
+body.view-inline .task-item .task-meta {
+    margin-top: 0;
+    margin-left: 10px;
+}
 
 /* --- ログイン画面 --- */
 .auth-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
@@ -24,25 +39,26 @@ body { font-family: sans-serif; background-color: #f4f7f6; margin: 0; }
 .eisenhower-matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; min-height: 70vh; }
 
 /* --- クアドラントとタスク --- */
-.quadrant { background-color: #fff; border-radius: 8px; padding: 15px; border-top: 5px solid; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
-.quadrant.drag-over { background-color: #e8f4fd; }
+.quadrant { background-color: #fff; border-radius: 8px; padding: 15px; border-top: 5px solid; box-shadow: 0 2px 8px rgba(0,0,0,0.07); transition: background-color 0.2s, border-style 0.2s; }
+.quadrant.drag-over { background-color: #e8f4fd; border-style: dashed; }
 #q1 { border-color: var(--q1-color); } #q2 { border-color: var(--q2-color); }
 #q3 { border-color: var(--q3-color); } #q4 { border-color: var(--q4-color); }
 .quadrant h2 { margin: 0 0 15px 0; font-size: 1.2em; padding-bottom: 10px; border-bottom: 1px solid #eee; }
 .task-list { list-style-type: none; padding: 0; margin: 0; min-height: 50px; }
-.task-item { background: #fdfdfd; border: 1px solid #eee; border-radius: 5px; padding: 10px 12px; margin-bottom: 10px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.task-item { background: #fdfdfd; border: 1px solid #eee; border-radius: 5px; padding: 10px 12px; margin-bottom: 10px; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 .task-item:hover { box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
-.task-item.dragging { opacity: 0.5; }
+.task-item.dragging { opacity: 0.5; cursor: grabbing; }
 .task-item-content { display: flex; flex-direction: column; }
 .task-item.completed .task-title { text-decoration: line-through; color: #aaa; }
 .task-main { display: flex; gap: 10px; align-items: flex-start; }
-.task-checkbox { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; }
+.task-checkbox { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; cursor: pointer; }
 .task-details { flex-grow: 1; }
 .task-title { font-weight: 500; }
 .task-memo { font-size: 0.85em; color: #666; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 95%; }
-.task-meta { margin-top: 8px; margin-left: 28px; }
-.due-date { font-size: 0.8em; padding: 2px 8px; border-radius: 10px; color: #555; background-color: #f0f0f0; display: inline-block; }
+.task-meta { margin-top: 8px; margin-left: 28px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.due-date, .start-date { font-size: 0.8em; padding: 2px 8px; border-radius: 10px; color: #555; background-color: #f0f0f0; display: inline-flex; align-items: center; gap: 4px; }
 .due-date.overdue { background-color: var(--danger-color); color: white; }
+.due-date.warning { background-color: var(--warning-color); color: white; }
 
 /* --- フローティングボタン (FAB) & パネル --- */
 .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background-color: var(--primary-color); color: white; border: none; border-radius: 50%; font-size: 28px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer; z-index: 1000; }
@@ -69,118 +85,21 @@ body { font-family: sans-serif; background-color: #f4f7f6; margin: 0; }
 #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 999; display: none; }
 #overlay.is-open { display: block; }
 
+/* --- 設定パネル --- */
+.settings-panel { position: fixed; background: white; border-radius: 10px; box-shadow: 0 5px 25px rgba(0,0,0,0.25); z-index: 1002; width: 380px; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; }
+.settings-panel .panel-header { cursor: move; }
+.settings-panel .panel-footer { padding: 15px 20px; text-align: right; border-top: 1px solid #eee; }
+.settings-panel .panel-footer button { padding: 8px 16px; background-color: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; }
+.setting-tabs { display: flex; border: 1px solid #ccc; border-radius: 5px; overflow: hidden; }
+.setting-tab { flex: 1; padding: 8px; text-align: center; background: #f0f0f0; cursor: pointer; font-size: 0.9em; }
+.setting-tab.active { background: var(--primary-color); color: white; }
+.deadline-setting { display: flex; align-items: center; gap: 8px; }
+.deadline-setting input[type="number"] { width: 50px; padding: 5px; }
+.deadline-setting input[type="color"] { width: 40px; height: 30px; padding: 2px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; }
+
 /* --- スマホ用スタイル --- */
 @media (max-width: 768px) {
     .eisenhower-matrix { grid-template-columns: 1fr; }
     .task-panel { width: 100%; bottom: 0; right: 0; border-radius: 10px 10px 0 0; }
-}
-/* --- ドラッグ&ドロップ用スタイル --- */
-.quadrant.drag-over {
-    background-color: #e8f4fd; /* ドロップ先の背景色 */
-    border-style: dashed;
-}
-.task-item.dragging {
-    opacity: 0.5; /* ドラッグ中のタスクを半透明に */
-}
-
-/* --- タスクのメタ情報（日付など）のレイアウト調整 --- */
-.task-meta {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: center;
-}
-.due-date, .start-date {
-    font-size: 0.8em;
-    padding: 2px 8px;
-    border-radius: 10px;
-    color: #555;
-    background-color: #f0f0f0;
-    display: inline-flex; /* アイコンと文字を中央揃え */
-    align-items: center;
-    gap: 4px;
-}
-/* --- 設定パネル --- */
-.settings-panel {
-    position: fixed;
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 5px 25px rgba(0,0,0,0.25);
-    z-index: 1002;
-    width: 380px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-.settings-panel .panel-header {
-    cursor: move; /* ドラッグで移動できることを示すカーソル */
-}
-.settings-panel .panel-footer {
-    padding: 15px 20px;
-    text-align: right;
-    border-top: 1px solid #eee;
-}
-.settings-panel .panel-footer button {
-    padding: 8px 16px;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-/* --- 設定項目UI --- */
-.setting-tabs {
-    display: flex;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    overflow: hidden;
-}
-.setting-tab {
-    flex: 1;
-    padding: 8px;
-    text-align: center;
-    background: #f0f0f0;
-    cursor: pointer;
-    font-size: 0.9em;
-}
-.setting-tab.active {
-    background: var(--primary-color);
-    color: white;
-}
-.deadline-setting {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.deadline-setting input[type="number"] {
-    width: 50px;
-    padding: 5px;
-}
-.deadline-setting input[type="color"] {
-    width: 40px;
-    height: 30px;
-    padding: 2px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-/* --- オプション反映用スタイル --- */
-/* 期限を横に表示するスタイル */
-.task-item.view-inline .task-main {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-}
-.task-item.view-inline .task-details {
-    flex-grow: 0; /* 横幅を自動調整 */
-}
-.task-item.view-inline .task-meta {
-    margin-top: 0;
-    margin-left: 10px;
-}
-.due-date.warning {
-    background-color: var(--warning-color, #f1c40f); /* デフォルトは黄色 */
-    color: white;
+    .settings-panel { width: 90%; }
 }
